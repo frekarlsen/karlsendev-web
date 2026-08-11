@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Karlsen Development — karlsendev.no</title>
+    <meta name="description" content="Karlsen Development bygger nettsider, nettverk og sensorikk for småbedrifter i Nordland. Fast pris, ryddig dokumentasjon, løsninger du eier selv.">
+    <meta name="theme-color" content="#0a0a0b">
+    <link rel="canonical" href="https://karlsendev.no/">
+
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="nb_NO">
+    <meta property="og:url" content="https://karlsendev.no/">
+    <meta property="og:site_name" content="Karlsen Development">
+    <meta property="og:title" content="Karlsen Development">
+    <meta property="og:description" content="Nettsider, nettverk og sensorikk for småbedrifter i Nordland.">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,300;6..72,400&display=swap" rel="stylesheet">
+
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230a0a0b'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%233d5a80'/%3E%3C/svg%3E">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #0a0a0b;
+            --text: #e8e6e3;
+            --text-muted: #6b6b6b;
+            --accent: #3d5a80;
+            --accent-bright: #6d8db8;
+            --live: #4ade80;
+            --line: rgba(255, 255, 255, 0.06);
+            --line-soft: rgba(255, 255, 255, 0.03);
+            --particle: rgba(61, 90, 128, 0.6);
+            --grain-opacity: 0.03;
+            --gutter: clamp(1.5rem, 6vw, 5rem);
+            --maxw: 1120px;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Instrument Sans', -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            position: relative;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Canvas for particles */
+        #particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Subtle grain texture */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+            opacity: var(--grain-opacity);
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* Subtle corner accents */
+        .corner {
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .corner--tl {
+            top: 2rem;
+            left: 2rem;
+            border-right: none;
+            border-bottom: none;
+        }
+
+        .corner--br {
+            bottom: 2rem;
+            right: 2rem;
+            border-left: none;
+            border-top: none;
+        }
+
+        @media (max-width: 700px) {
+            .corner { display: none; }
+        }
+
+        /* ---------- typografi ---------- */
+        .serif {
+            font-family: 'Newsreader', Georgia, serif;
+            font-weight: 300;
+            letter-spacing: -0.02em;
+            line-height: 1.15;
+        }
+
+        .eyebrow {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .divider {
+            width: 40px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--text-muted), transparent);
+            margin: 2rem auto;
+        }
+
+        .divider--left {
+            margin: 2rem 0;
+            background: linear-gradient(90deg, var(--text-muted), transparent);
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--live);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+            flex: none;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            to { opacity: 0; }
+        }
+
+        .fade { opacity: 0; animation: fadeUp 1s ease-out forwards; }
+        .d1 { animation-delay: 0.2s; }
+        .d2 { animation-delay: 0.5s; }
+        .d3 { animation-delay: 0.8s; }
+        .d4 { animation-delay: 1s; }
+
+        /* scroll-avdekking */
+        .rv { opacity: 0; transform: translateY(20px); transition: opacity 1s ease-out, transform 1s ease-out; }
+        .rv.in { opacity: 1; transform: none; }
+
+        /* ---------- topplinje ---------- */
+        .top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            padding: 1.1rem var(--gutter);
+            background: rgba(10, 10, 11, 0.72);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--line-soft);
+            opacity: 0;
+            transform: translateY(-100%);
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            pointer-events: none;
+        }
+
+        .top.show { opacity: 1; transform: none; pointer-events: auto; }
+
+        .top .mark {
+            font-family: 'Newsreader', Georgia, serif;
+            font-weight: 400;
+            font-size: 1.05rem;
+            letter-spacing: -0.01em;
+            text-decoration: none;
+            color: var(--text);
+            margin-right: auto;
+        }
+
+        .top .mark span { color: var(--accent-bright); }
+
+        .top nav { display: flex; gap: 1.75rem; }
+
+        .top nav a {
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+        .top nav a:hover, .top nav a:focus-visible { color: var(--text); }
+
+        @media (max-width: 720px) {
+            .top nav a:not(.keep) { display: none; }
+        }
+
+        :focus-visible { outline: 1px solid var(--accent-bright); outline-offset: 4px; }
+
+        /* ---------- layout ---------- */
+        .wrap {
+            max-width: var(--maxw);
+            margin: 0 auto;
+            padding-inline: var(--gutter);
+            position: relative;
+            z-index: 1;
+        }
+
+        section { position: relative; z-index: 1; }
+
+        /* ---------- hero ---------- */
+        .hero {
+            min-height: 100vh;
+            min-height: 100svh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 6rem 2rem;
+        }
+
+        .logo {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+            margin-bottom: 1.5rem;
+        }
+
+        .logo span { color: var(--accent); }
+
+        .tagline {
+            font-size: clamp(0.875rem, 2vw, 1rem);
+            font-weight: 400;
+            color: var(--text-muted);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+        }
+
+        .hero-lede {
+            max-width: 46ch;
+            margin: 0 auto;
+            color: var(--text-muted);
+            font-size: clamp(0.95rem, 1.6vw, 1.05rem);
+        }
+
+        .hero-lede + .status { margin-top: 2rem; }
+
+        .hint {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeUp 1s ease-out 1.5s forwards, fadeOut 1s ease-out 5s forwards;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* ---------- seksjoner ---------- */
+        .band {
+            padding: clamp(5rem, 12vw, 9rem) 0;
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .band-head { max-width: 60ch; }
+        .band-head h2 { font-size: clamp(1.9rem, 4.2vw, 3rem); margin-top: 1.25rem; }
+        .band-head p { color: var(--text-muted); margin-top: 1.5rem; font-size: 1rem; }
+
+        /* ---------- tjenester ---------- */
+        .services {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            margin-top: clamp(3rem, 6vw, 4.5rem);
+            background: var(--line);
+            border: 1px solid var(--line);
+        }
+
+        .service {
+            background: var(--bg);
+            padding: clamp(1.75rem, 3vw, 2.5rem);
+            transition: background 0.4s ease;
+        }
+
+        .service:hover { background: #0e0f11; }
+
+        .service .idx {
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent-bright);
+        }
+
+        .service h3 { font-size: 1.6rem; margin: 1rem 0 1rem; }
+
+        .service > p { color: var(--text-muted); font-size: 0.95rem; }
+
+        .service ul { list-style: none; margin-top: 1.75rem; }
+
+        .service li {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            padding: 0.6rem 0 0.6rem 1.1rem;
+            border-top: 1px solid var(--line-soft);
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .service li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 1.05rem;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+        @media (max-width: 860px) {
+            .services { grid-template-columns: 1fr; }
+        }
+
+        /* ---------- prosjekter ---------- */
+        .projects { margin-top: clamp(3rem, 6vw, 4.5rem); }
+
+        .project {
+            display: grid;
+            grid-template-columns: 4rem minmax(0, 15rem) minmax(0, 1fr) 2rem;
+            gap: clamp(1rem, 3vw, 2.5rem);
+            align-items: start;
+            padding: 2rem 0.75rem;
+            border-top: 1px solid var(--line-soft);
+            text-decoration: none;
+            color: var(--text);
+            transition: background 0.4s ease;
+        }
+
+        .project:last-of-type { border-bottom: 1px solid var(--line-soft); }
+        .project:hover, .project:focus-visible { background: #0e0f11; }
+
+        .project .n {
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            padding-top: 0.7rem;
+        }
+
+        .project h3 {
+            font-size: clamp(1.35rem, 2.6vw, 1.75rem);
+            transition: color 0.3s ease;
+        }
+
+        .project:hover h3 { color: var(--accent-bright); }
+
+        .project p { color: var(--text-muted); font-size: 0.95rem; }
+
+        .project .tags {
+            display: block;
+            margin-top: 0.9rem;
+            font-size: 0.68rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--accent-bright);
+        }
+
+        .project .go {
+            font-size: 1rem;
+            color: var(--text-muted);
+            padding-top: 0.5rem;
+            transition: transform 0.3s ease, color 0.3s ease;
+        }
+
+        .project:hover .go { color: var(--text); transform: translate(3px, -3px); }
+
+        @media (max-width: 760px) {
+            .project { grid-template-columns: 3.5rem 1fr 1.5rem; gap: 0.5rem 1rem; }
+            .project p { grid-column: 2 / span 2; margin-top: 0.75rem; }
+        }
+
+        /* ---------- arbeidsmåte ---------- */
+        .steps { margin-top: clamp(3rem, 6vw, 4.5rem); }
+
+        .step {
+            display: grid;
+            grid-template-columns: 5rem minmax(0, 16rem) minmax(0, 1fr);
+            gap: clamp(1rem, 3vw, 3rem);
+            align-items: start;
+            padding: 2rem 0;
+            border-top: 1px solid var(--line-soft);
+        }
+
+        .step:last-child { border-bottom: 1px solid var(--line-soft); }
+
+        .step .n {
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            padding-top: 0.55rem;
+        }
+
+        .step h3 { font-size: 1.4rem; }
+        .step p { color: var(--text-muted); font-size: 0.95rem; }
+
+        @media (max-width: 760px) {
+            .step { grid-template-columns: 3.5rem 1fr; gap: 0.5rem 1rem; }
+            .step p { grid-column: 2; margin-top: 0.5rem; }
+        }
+
+        /* ---------- om ---------- */
+        .about {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.6fr);
+            gap: clamp(2.5rem, 6vw, 5rem);
+            align-items: start;
+        }
+
+        .about .prose p + p { margin-top: 1.25rem; }
+        .about .prose p { color: var(--text-muted); }
+        .about .prose p:first-of-type { color: var(--text); }
+
+        .facts { border-top: 1px solid var(--line-soft); }
+        .facts div { padding: 1.1rem 0; border-bottom: 1px solid var(--line-soft); }
+        .facts dt { font-size: 0.68rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); }
+        .facts dd {
+            font-family: 'Newsreader', Georgia, serif;
+            font-weight: 400;
+            font-size: 1.15rem;
+            margin-top: 0.35rem;
+        }
+
+        @media (max-width: 860px) {
+            .about { grid-template-columns: 1fr; }
+        }
+
+        /* ---------- kontakt ---------- */
+        .contact { text-align: center; }
+        .contact .band-head { margin: 0 auto; }
+        .contact .band-head p { margin-inline: auto; }
+
+        .lines { margin-top: clamp(2.5rem, 5vw, 3.5rem); border-top: 1px solid var(--line-soft); }
+
+        .lines a {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 1.25rem;
+            padding: 1.4rem 1rem;
+            text-decoration: none;
+            color: var(--text);
+            border-bottom: 1px solid var(--line-soft);
+            transition: background 0.4s ease, color 0.3s ease;
+        }
+
+        .lines a:hover, .lines a:focus-visible { background: #0e0f11; color: var(--accent-bright); }
+
+        .lines .k {
+            font-size: 0.68rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .lines .v {
+            font-family: 'Newsreader', Georgia, serif;
+            font-weight: 300;
+            font-size: clamp(1.25rem, 3vw, 1.9rem);
+            letter-spacing: -0.02em;
+            word-break: break-word;
+        }
+
+        /* ---------- bunn ---------- */
+        footer {
+            border-top: 1px solid var(--line-soft);
+            padding: 2rem 0 2.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        footer .wrap {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem 2rem;
+            align-items: center;
+            font-size: 0.68rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        footer a { color: inherit; text-decoration: none; transition: color 0.3s ease; }
+        footer a:hover { color: var(--text); }
+        footer .sp { margin-left: auto; }
+
+        @media (prefers-reduced-motion: reduce) {
+            html { scroll-behavior: auto; }
+            .fade { opacity: 1; animation: none; }
+            .rv { opacity: 1; transform: none; transition: none; }
+            .status-dot { animation: none; }
+            .hint { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particles"></canvas>
+    <div class="corner corner--tl"></div>
+    <div class="corner corner--br"></div>
+
+    <header class="top" id="top-bar">
+        <a class="mark" href="#hero">karlsendev<span>.</span>no</a>
+        <nav aria-label="Hovedmeny">
+            <a href="#tjenester">Tjenester</a>
+            <a href="#prosjekter">Prosjekter</a>
+            <a href="#arbeid">Arbeidsmåte</a>
+            <a href="#om">Om</a>
+            <a class="keep" href="#kontakt">Kontakt</a>
+        </nav>
+    </header>
+
+    <main>
+
+        <section class="hero" id="hero">
+            <div>
+                <h1 class="logo serif fade d1">Karlsen Development</h1>
+                <p class="tagline fade d2">Nettsider · Nettverk · Sensorikk</p>
+                <div class="divider fade d3"></div>
+                <p class="hero-lede fade d3">Små, ryddige løsninger for bedrifter i Nordland — bygget av én person, dokumentert slik at du kan drive dem videre selv.</p>
+                <div class="status fade d4">
+                    <span class="status-dot"></span>
+                    <span>Tar oppdrag</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="band" id="tjenester">
+            <div class="wrap">
+                <div class="band-head rv">
+                    <p class="eyebrow">01 — Tjenester</p>
+                    <h2 class="serif">Tre ting, gjort ordentlig</h2>
+                    <p>Ta én av dem eller alle tre. De henger som regel sammen i virkeligheten også: siden må ligge et sted, stedet må ha nett, og nettet må du kunne se om lever.</p>
+                </div>
+
+                <div class="services rv">
+                    <article class="service">
+                        <span class="idx">01</span>
+                        <h3 class="serif">Nettsider</h3>
+                        <p>Raske, ryddige sider uten månedsavgift til en plattform du ikke eier. Du får koden, domenet og innholdet.</p>
+                        <ul>
+                            <li>Ny side eller ny drakt på den gamle</li>
+                            <li>Domene, e-post og kontaktskjema</li>
+                            <li>Synlig i Google og på mobil</li>
+                            <li>Drift og overvåket oppetid</li>
+                        </ul>
+                    </article>
+
+                    <article class="service">
+                        <span class="idx">02</span>
+                        <h3 class="serif">Nettverk</h3>
+                        <p>Planlegging og oppsett av nett for gård, verksted og småbedrift. Dekning der du jobber, og en tegning som viser hva som står hvor.</p>
+                        <ul>
+                            <li>Kartlegging og dokumentasjon</li>
+                            <li>Brannmur, VLAN og eget gjestenett</li>
+                            <li>WiFi som dekker fjøs og lager</li>
+                            <li>Kamera og trygg fjerntilgang</li>
+                        </ul>
+                    </article>
+
+                    <article class="service">
+                        <span class="idx">03</span>
+                        <h3 class="serif">Sensorikk</h3>
+                        <p>Måling av temperatur, strøm og status der du ikke er. Varsel på telefonen før det blir en regning.</p>
+                        <ul>
+                            <li>Hytte, fjøs, verksted og pumpehus</li>
+                            <li>4G der det ikke finnes fastnett</li>
+                            <li>Logg og historikk du ser selv</li>
+                            <li>Varsling på SMS eller app</li>
+                        </ul>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="band" id="prosjekter">
+            <div class="wrap">
+                <div class="band-head rv">
+                    <p class="eyebrow">02 — Prosjekter</p>
+                    <h2 class="serif">Levert arbeid</h2>
+                    <p>Kunder jeg har bygget for. Alle sidene driftes videre, og alle eier innholdet og domenet sitt selv.</p>
+                </div>
+
+                <div class="projects rv">
+                    <a class="project" href="https://aarsnesgard.no" target="_blank" rel="noopener">
+                        <div class="n">01</div>
+                        <div>
+                            <h3 class="serif">aarsnesgard.no</h3>
+                            <span class="tags">Nettside · Nettverk</span>
+                        </div>
+                        <p>Nettside for gårdsbruket, bygget sammen med en gjennomgang av nettet på gården — dekning i driftsbygningene, eget gjestenett og dokumentasjon på hva som står hvor.</p>
+                        <span class="go" aria-hidden="true">↗</span>
+                    </a>
+
+                    <a class="project" href="https://rjdesign.no" target="_blank" rel="noopener">
+                        <div class="n">02</div>
+                        <div>
+                            <h3 class="serif">rjdesign.no</h3>
+                            <span class="tags">Nettside</span>
+                        </div>
+                        <p>Enkel presentasjonsside med portefølje og kontaktpunkt. Rask å laste, lett å oppdatere, uten månedsavgift til en byggeplattform.</p>
+                        <span class="go" aria-hidden="true">↗</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <section class="band" id="arbeid">
+            <div class="wrap">
+                <div class="band-head rv">
+                    <p class="eyebrow">03 — Arbeidsmåte</p>
+                    <h2 class="serif">Fire trinn, i den rekkefølgen</h2>
+                    <p>Ingenting bygges før du vet hva det koster, og ingenting overleveres uten dokumentasjon.</p>
+                </div>
+
+                <div class="steps rv">
+                    <div class="step">
+                        <div class="n">TRINN 01</div>
+                        <h3 class="serif">Befaring</h3>
+                        <p>Vi går gjennom hva du har og hva du mangler — på stedet eller over telefon. Den samtalen koster ingenting.</p>
+                    </div>
+                    <div class="step">
+                        <div class="n">TRINN 02</div>
+                        <h3 class="serif">Forslag og fast pris</h3>
+                        <p>Du får et skriftlig forslag med omfang, tidsplan og fast pris. Du sier ja før noe bygges.</p>
+                    </div>
+                    <div class="step">
+                        <div class="n">TRINN 03</div>
+                        <h3 class="serif">Bygging</h3>
+                        <p>Du ser fremdriften underveis på en testadresse og sier fra mens det ennå er enkelt å endre.</p>
+                    </div>
+                    <div class="step">
+                        <div class="n">TRINN 04</div>
+                        <h3 class="serif">Overlevering</h3>
+                        <p>Du får tilgangene, tegningene og en kort bruksanvisning. Vil du at jeg drifter videre, gjør jeg det. Vil du ikke, eier du alt selv.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="band" id="om">
+            <div class="wrap about">
+                <div class="prose rv">
+                    <p class="eyebrow">04 — Om</p>
+                    <h2 class="serif" style="font-size:clamp(1.9rem,4.2vw,3rem);margin:1.25rem 0 1.5rem">Fredrik Karlsen</h2>
+                    <p>Til daglig er jeg elektriker i Equinor, på plattform i Norskehavet. Der jobber jeg med vern, IEC 61850 og industriell IT — anlegg som må gå videre av seg selv når helikopteret drar.</p>
+                    <p>Karlsen Development er den samme arbeidsmåten i mindre skala. Jeg tegner før jeg bygger, dokumenterer det jeg setter opp, og leverer fra meg noe du kan drive videre uten å være bundet til meg.</p>
+                    <p>Firmaet drives ved siden av jobben, og det betyr at jeg tar færre oppdrag om gangen. Til gjengjeld får du svar fra den som faktisk gjør arbeidet.</p>
+                </div>
+                <dl class="facts rv">
+                    <div><dt>Fagbrev</dt><dd>Elektriker</dd></div>
+                    <div><dt>Arbeidsfelt</dt><dd>Vern, IEC&nbsp;61850, industriell IT</dd></div>
+                    <div><dt>Base</dt><dd>Narvik</dd></div>
+                    <div><dt>Oppdrag</dt><dd>Nordland og digitalt</dd></div>
+                </dl>
+            </div>
+        </section>
+
+        <section class="band contact" id="kontakt">
+            <div class="wrap">
+                <div class="band-head rv">
+                    <p class="eyebrow">05 — Kontakt</p>
+                    <h2 class="serif">Fortell meg hva du trenger</h2>
+                    <p>Ring, skriv eller send noen linjer om hva du sitter med. Jeg jobber offshore i perioder — legg igjen en beskjed, så ringer jeg tilbake.</p>
+                </div>
+
+                <div class="lines rv">
+                    <a href="tel:+4741399781"><span class="k">Telefon</span><span class="v serif">413 99 781</span></a>
+                    <a href="mailto:frekarlsen@gmail.com?subject=Foresp%C3%B8rsel%20via%20karlsendev.no"><span class="k">E-post</span><span class="v serif">frekarlsen@gmail.com</span></a>
+                </div>
+
+                <div class="divider"></div>
+                <div class="status"><span class="status-dot"></span><span>Svarer normalt innen ett døgn</span></div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <div class="wrap">
+            <span>Karlsen Development</span>
+            <span>Org.nr. under registrering</span>
+            <span>Narvik</span>
+            <span class="sp"><a href="#hero">Til toppen ↑</a></span>
+        </div>
+    </footer>
+
+    <div class="hint">Move cursor to interact</div>
+
+    <script>
+        const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+        const canvas = document.getElementById('particles');
+        const ctx = canvas.getContext('2d');
+
+        let width, height;
+        let particles = [];
+        let mouse = { x: null, y: null, radius: 150 };
+
+        const particleCount = window.innerWidth < 700 ? 40 : 80;
+        const connectionDistance = 120;
+
+        function resize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+        }
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.baseX = this.x;
+                this.baseY = this.y;
+                this.vx = (Math.random() - 0.5) * 0.3;
+                this.vy = (Math.random() - 0.5) * 0.3;
+                this.size = Math.random() * 2 + 1;
+                this.opacity = Math.random() * 0.5 + 0.2;
+            }
+
+            update() {
+                this.baseX += this.vx;
+                this.baseY += this.vy;
+
+                if (this.baseX < 0 || this.baseX > width) this.vx *= -1;
+                if (this.baseY < 0 || this.baseY > height) this.vy *= -1;
+
+                if (mouse.x !== null) {
+                    const dx = mouse.x - this.baseX;
+                    const dy = mouse.y - this.baseY;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < mouse.radius) {
+                        const force = (mouse.radius - dist) / mouse.radius;
+                        const angle = Math.atan2(dy, dx);
+                        this.x = this.baseX - Math.cos(angle) * force * 50;
+                        this.y = this.baseY - Math.sin(angle) * force * 50;
+                    } else {
+                        this.x += (this.baseX - this.x) * 0.1;
+                        this.y += (this.baseY - this.y) * 0.1;
+                    }
+                } else {
+                    this.x = this.baseX;
+                    this.y = this.baseY;
+                }
+            }
+
+            draw() {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(61, 90, 128, ' + this.opacity + ')';
+                ctx.fill();
+            }
+        }
+
+        function init() {
+            resize();
+            particles = [];
+            for (let i = 0; i < particleCount; i++) {
+                particles.push(new Particle());
+            }
+        }
+
+        function drawConnections() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < connectionDistance) {
+                        const opacity = (1 - dist / connectionDistance) * 0.15;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.strokeStyle = 'rgba(61, 90, 128, ' + opacity + ')';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            if (mouse.x !== null) {
+                for (let i = 0; i < particles.length; i++) {
+                    const dx = mouse.x - particles[i].x;
+                    const dy = mouse.y - particles[i].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < mouse.radius) {
+                        const opacity = (1 - dist / mouse.radius) * 0.3;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(mouse.x, mouse.y);
+                        ctx.strokeStyle = 'rgba(74, 222, 128, ' + opacity + ')';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, width, height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            drawConnections();
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', () => {
+            resize();
+            particles.forEach(p => {
+                p.baseX = Math.min(p.baseX, width);
+                p.baseY = Math.min(p.baseY, height);
+            });
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        window.addEventListener('mouseleave', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        window.addEventListener('touchmove', (e) => {
+            mouse.x = e.touches[0].clientX;
+            mouse.y = e.touches[0].clientY;
+        });
+
+        window.addEventListener('touchend', () => {
+            mouse.x = null;
+            mouse.y = null;
+        });
+
+        init();
+        if (reduced) {
+            particles.forEach(p => p.draw());
+            drawConnections();
+        } else {
+            animate();
+        }
+
+        /* Topplinje som kommer inn etter heroen */
+        const bar = document.getElementById('top-bar');
+        const hero = document.getElementById('hero');
+        const hint = document.querySelector('.hint');
+
+        new IntersectionObserver((entries) => {
+            entries.forEach(e => {
+                bar.classList.toggle('show', !e.isIntersecting);
+                if (hint && !e.isIntersecting) hint.style.display = 'none';
+            });
+        }, { threshold: 0.15 }).observe(hero);
+
+        /* Avdekking ved scroll */
+        const revealables = document.querySelectorAll('.rv');
+        if (reduced) {
+            revealables.forEach(el => el.classList.add('in'));
+        } else {
+            const io = new IntersectionObserver((entries) => {
+                entries.forEach(e => {
+                    if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+                });
+            }, { threshold: 0.12, rootMargin: '0px 0px -60px 0px' });
+            revealables.forEach(el => io.observe(el));
+        }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context":"https://schema.org",
+      "@type":"ProfessionalService",
+      "name":"Karlsen Development",
+      "url":"https://karlsendev.no",
+      "telephone":"+4741399781",
+      "email":"frekarlsen@gmail.com",
+      "founder":{"@type":"Person","name":"Fredrik Karlsen"},
+      "areaServed":{"@type":"AdministrativeArea","name":"Nordland, Norge"},
+      "address":{"@type":"PostalAddress","addressLocality":"Narvik","addressCountry":"NO"},
+      "knowsAbout":["Webutvikling","Nettverksdesign","IoT","Industriell IT"]
+    }
+    </script>
+</body>
+</html>
