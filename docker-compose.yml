@@ -1,0 +1,19 @@
+services:
+  web:
+    build: .
+    # Alternativ: bruk ferdig image fra GHCR i stedet for lokal build
+    # image: ghcr.io/<github-bruker>/karlsendev-web:latest
+    container_name: karlsendev-web
+    restart: unless-stopped
+    ports:
+      - "8088:80"          # juster hvis 8088 er opptatt på VM-en
+    networks:
+      - default
+      # - cloudflared      # aktiver hvis cloudflared kjører i Docker på samme host
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+networks:
+  default:
+  # cloudflared:
+  #   external: true
